@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow | Flashcards</title>
+    <style>
+        /* 1. Base Reset & Font setup */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* 2. The Background: Cool blue/purple gradient */
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            padding: 20px;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 3. Navbar / Header */
+        header {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #1d1d1f;
+        }
+
+        button {
+            border: none;
+            padding: 10px 20px;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #ffffff;
+            color: #1d1d1f;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button:hover {
+            background: #f5f5f7;
+        }
+
+        /* 4. The Flashcard 3D Environment */
+        .card-container {
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            perspective: 1000px; /* Creates the 3D space */
+            margin-bottom: 30px;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d; /* Allows 3D rotation of children */
+            cursor: pointer;
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* The Glass Front and Back */
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden; /* Hides the back when flipped */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-back {
+            transform: rotateY(180deg); /* Pre-rotate the back side */
+            background: rgba(255, 255, 255, 0.5); /* Slightly more opaque for the answer */
+        }
+
+        .label {
+            font-size: 0.9rem;
+            color: #515154;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .text-content {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #1d1d1f;
+        }
+
+        /* 5. Navigation Controls */
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        /* 6. The Management Modal (Hidden by default) */
+        .modal {
+            display: none; /* Hidden state */
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 25px;
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+
+        input, textarea {
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+            margin-top: 5px;
+            resize: vertical;
+        }
+
+        .btn-save { background: #1d1d1f; color: #fff; width: 100%; margin-bottom: 20px;}
+        .btn-save:hover { background: #333; }
+
+        /* Modal List Items */
+        .card-list-item {
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .card-list-text {
+            flex-grow: 1;
+            margin-right: 15px;
+            font-size: 0.9rem;
+        }
+
+        .btn-delete { background: #ff3b30; color: white; padding: 6px 12px; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>StudyFlow</h1>
+        <button id="manage-btn">Manage Cards</button>
+    </header>
+
+    <div class="card-container">
+        <div id="flashcard" class="flashcard">
+            <div class="card-face card-front">
+                <span class="label">Question</span>
+                <p id="card-question" class="text-content">Loading...</p>
+            </div>
+            <div class="card-face card-back">
+                <span class="label">Answer</span>
+                <p id="card-answer" class="text-content">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="prev-btn">← Previous</button>
+        <button id="flip-btn">Show Answer</button>
+        <button id="next-btn">Next →</button>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Manage Flashcards</h2>
+                <button id="close-modal-btn">Close</button>
+            </div>
+            
+            <div class="input-group">
+                <label>Question</label>
+                <input type="text" id="input-q" placeholder="Enter question...">
+            </div>
+            <div class="input-group">
+                <label>Answer</label>
+                <textarea id="input-a" rows="3" placeholder="Enter answer..."></textarea>
+            </div>
+            <button id="save-card-btn" class="btn-save">Add Flashcard</button>
+
+            <h3>Your Deck</h3>
+            <div id="card-list" style="margin-top: 15px;">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA STATE ---
+        let flashcards = [];
+        let currentIndex = 0;
+
+        // Default Data (CS Concepts) if localStorage is empty
+        const defaultCards = [
+            { q: "What is Time Complexity?", a: "A measure of the amount of time an algorithm takes to run as a function of the length of the input." },
+            { q: "What does 'OOP' stand for in Java/C++?", a: "Object-Oriented Programming (Encapsulation, Abstraction, Inheritance, Polymorphism)." },
+            { q: "What is a Pointer in C?", a: "A variable that stores the memory address of another variable." }
+        ];
+
+        // --- DOM ELEMENTS ---
+        const cardEl = document.getElementById('flashcard');
+        const questionEl = document.getElementById('card-question');
+        const answerEl = document.getElementById('card-answer');
+        
+        const flipBtn = document.getElementById('flip-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        
+        const modal = document.getElementById('modal');
+        const manageBtn = document.getElementById('manage-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        
+        const saveCardBtn = document.getElementById('save-card-btn');
+        const inputQ = document.getElementById('input-q');
+        const inputA = document.getElementById('input-a');
+        const cardList = document.getElementById('card-list');
+
+        // --- CORE FUNCTIONS ---
+
+        // 1. Load data from the browser's database
+        function loadCards() {
+            const savedCards = localStorage.getItem('studyflow_cards');
+            if (savedCards) {
+                flashcards = JSON.parse(savedCards); // Convert text back to Array
+            } else {
+                flashcards = [...defaultCards]; // Use defaults if empty
+            }
+            updateDisplay();
+        }
+
+        // 2. Save data to the browser's database
+        function saveCards() {
+            localStorage.setItem('studyflow_cards', JSON.stringify(flashcards));
+            updateDisplay();
+            renderModalList();
+        }
+
+        // 3. Update the UI with the current card
+        function updateDisplay() {
+            if (flashcards.length === 0) {
+                questionEl.innerText = "Deck is empty!";
+                answerEl.innerText = "Add cards in 'Manage Cards'.";
+                return;
+            }
+            
+            // Ensure index is within bounds
+            if (currentIndex >= flashcards.length) currentIndex = 0;
+            if (currentIndex < 0) currentIndex = flashcards.length - 1;
+
+            questionEl.innerText = flashcards[currentIndex].q;
+            answerEl.innerText = flashcards[currentIndex].a;
+            
+            // Always reset the flip state when changing cards
+            cardEl.classList.remove('flipped');
+            flipBtn.innerText = "Show Answer";
+        }
+
+        // --- EVENT LISTENERS ---
+
+        // Flip Card Logic
+        flipBtn.addEventListener('click', () => {
+            cardEl.classList.toggle('flipped');
+            if(cardEl.classList.contains('flipped')) {
+                flipBtn.innerText = "Hide Answer";
+            } else {
+                flipBtn.innerText = "Show Answer";
+            }
+        });
+
+        // Click the card itself to flip
+        cardEl.addEventListener('click', () => {
+            flipBtn.click();
+        });
+
+        // Next / Previous Logic
+        nextBtn.addEventListener('click', () => {
+            currentIndex++;
+            updateDisplay();
+        });
+
+        prevBtn.addEventListener('click', () => {
+            currentIndex--;
+            updateDisplay();
+        });
+
+        // --- MODAL / CRUD LOGIC ---
+
+        manageBtn.addEventListener('click', () => {
+            modal.classList.add('active');
+            renderModalList();
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+
+        // Add a new card
+        saveCardBtn.addEventListener('click', () => {
+            const qText = inputQ.value.trim();
+            const aText = inputA.value.trim();
+            
+            if (qText !== "" && aText !== "") {
+                flashcards.push({ q: qText, a: aText });
+                inputQ.value = ""; // Clear inputs
+                inputA.value = "";
+                currentIndex = flashcards.length - 1; // Jump to new card
+                saveCards();
+            }
+        });
+
+        // Delete a card
+        function deleteCard(index) {
+            flashcards.splice(index, 1); // Remove 1 item at the specific index
+            saveCards();
+        }
+
+        // Render the list of cards inside the Modal
+        function renderModalList() {
+            cardList.innerHTML = ""; // Clear current list
+            
+            flashcards.forEach((card, index) => {
+                const item = document.createElement('div');
+                item.className = 'card-list-item';
+                
+                // Truncate long text for the summary list
+                const shortQ = card.q.length > 30 ? card.q.substring(0, 30) + '...' : card.q;
+
+                item.innerHTML = `
+                    <div class="card-list-text"><strong>Q:</strong> ${shortQ}</div>
+                    <button class="btn-delete" onclick="deleteCard(${index})">Delete</button>
+                `;
+                cardList.appendChild(item);
+            });
+        }
+
+        // Initialize App
+        loadCards();
+
+    </script>
+</body>
+</html>

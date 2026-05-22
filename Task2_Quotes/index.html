@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quoteful | Random Quotes</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>">
+    <style>
+        /* CSS: The Architecture of our Apple Liquid Glass Design */
+        
+        /* 1. Base Reset & Font setup (Apple System Fonts) */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* 2. The Background: A fluid, colorful gradient typical of macOS wallpapers */
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            padding: 20px;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 3. The Liquid Glass Container */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.25); /* Semi-transparent white */
+            backdrop-filter: blur(25px); /* The frosted glass effect */
+            -webkit-backdrop-filter: blur(25px); /* Crucial for Safari/Apple devices */
+            border: 1px solid rgba(255, 255, 255, 0.4); /* Subtle white border to define the edge */
+            border-radius: 30px;
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        /* 4. Typography inside the glass */
+        .quote-content {
+            min-height: 120px; /* Prevents the card from jumping wildly when text size changes */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: opacity 0.4s ease; /* For the smooth fade in/out */
+        }
+
+        .quote-text {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #1d1d1f; /* Apple's standard dark gray */
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .quote-author {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #515154;
+            font-style: italic;
+        }
+
+        /* 5. Button Layout & Styling */
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        button {
+            border: none;
+            padding: 14px 24px;
+            border-radius: 20px; /* Pill shape */
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.95); /* Slight shrink on tap/click */
+        }
+
+        .btn-primary {
+            background: #ffffff;
+            color: #1d1d1f;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .btn-primary:hover {
+            background: #f5f5f7;
+        }
+
+        .btn-icon {
+            background: rgba(255,255,255,0.4);
+            color: #1d1d1f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            border-radius: 50%; /* Perfect circle */
+        }
+
+        .btn-icon:hover {
+            background: rgba(255,255,255,0.6);
+        }
+
+        /* 6. Toast Notification for "Copied!" */
+        .toast {
+            position: fixed;
+            top: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+            pointer-events: none; /* So it doesn't block clicks */
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast" class="toast">Copied to clipboard!</div>
+
+    <div class="glass-card">
+        <div id="quote-content" class="quote-content">
+            <h2 id="quote-text" class="quote-text">"Loading quote..."</h2>
+            <p id="quote-author" class="quote-author">-</p>
+        </div>
+        
+        <div class="controls">
+            <button id="new-quote-btn" class="btn-primary">New Quote</button>
+            
+            <button id="copy-btn" class="btn-icon" aria-label="Copy to clipboard">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // JAVASCRIPT: The Logic of our App
+
+        // 1. Local Data Array: Hardcoded quotes so it works offline
+        const quotes = [
+            { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+            { text: "Simplicity is the ultimate sophistication.", author: "Leonardo da Vinci" },
+            { text: "It always seems impossible until it is done.", author: "Nelson Mandela" },
+            { text: "Talk is cheap. Show me the code.", author: "Linus Torvalds" },
+            { text: "First, solve the problem. Then, write the code.", author: "John Johnson" },
+            { text: "Code is like humor. When you have to explain it, it’s bad.", author: "Cory House" },
+            { text: "Make it work, make it right, make it fast.", author: "Kent Beck" },
+            { text: "Truth can only be found in one place: the code.", author: "Robert C. Martin" }
+        ];
+
+        // 2. Select the HTML elements we need to interact with
+        const quoteTextElement = document.getElementById('quote-text');
+        const quoteAuthorElement = document.getElementById('quote-author');
+        const quoteContentContainer = document.getElementById('quote-content');
+        const newQuoteBtn = document.getElementById('new-quote-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const toast = document.getElementById('toast');
+
+        let currentQuoteIndex = -1;
+
+        // 3. Core Function: Generate and display a random quote
+        function generateRandomQuote() {
+            let randomIndex;
+            
+            // Loop until we get a DIFFERENT index, preventing back-to-back duplicate quotes
+            do {
+                randomIndex = Math.floor(Math.random() * quotes.length);
+            } while (randomIndex === currentQuoteIndex);
+
+            currentQuoteIndex = randomIndex;
+            const selectedQuote = quotes[randomIndex];
+
+            // Trigger the fade-out effect
+            quoteContentContainer.style.opacity = 0;
+
+            // Wait for the fade-out to finish (300ms), then swap text and fade back in
+            setTimeout(() => {
+                quoteTextElement.innerText = `"${selectedQuote.text}"`;
+                quoteAuthorElement.innerText = `- ${selectedQuote.author}`;
+                quoteContentContainer.style.opacity = 1;
+            }, 300); // 300ms matches our CSS transition time
+        }
+
+        // 4. Core Function: Copy to Clipboard
+        function copyToClipboard() {
+            // Combine text and author for the clipboard
+            const textToCopy = `${quoteTextElement.innerText} ${quoteAuthorElement.innerText}`;
+            
+            // Use the modern Navigator API to copy
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Show the toast notification
+                toast.classList.add('show');
+                
+                // Hide the toast after 2 seconds
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            });
+        }
+
+        // 5. Event Listeners: Connect functions to button clicks
+        newQuoteBtn.addEventListener('click', generateRandomQuote);
+        copyBtn.addEventListener('click', copyToClipboard);
+
+        // 6. Initialization: Show a quote immediately when the app opens
+        generateRandomQuote();
+
+    </script>
+</body>
+</html>
